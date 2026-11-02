@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { TAU } from './util.js';
+import { TAU, rng } from './util.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 // Point on the cake in cake-local coordinates. φ is measured from +z toward +x.
 export const polar = (r, y, phi) => new THREE.Vector3(r * Math.sin(phi), y, r * Math.cos(phi));
@@ -150,7 +151,7 @@ export function sectorGeometry({ R, H, cr = 0.09, a0 = 0, a1 = TAU, uvScale = 3.
  * The narrow groove a knife leaves behind: runs from near the centre, across the
  * top, round the rounded rim, and down the side. A shader reveals it top→bottom.
  */
-export function slitGeometry({ R, H, cr = 0.09, phi, width = 0.042, r0 = 0.1, lift = 0.0045 }) {
+export function slitGeometry({ R, H, cr = 0.09, phi, width = 0.034, r0 = 0.08, lift = 0.022 }) {
   const S = 6;
   const path = [{ r: r0, y: H, nr: 0, ny: 1 }];
   path.push({ r: R - cr, y: H, nr: 0, ny: 1 });
@@ -295,6 +296,197 @@ export function leafGeometry(len = 0.2, wid = 0.07) {
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i);
     p.setZ(i, -((x / len) ** 2) * len * 0.5);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+/* ───────────────────────── gold drip ─────────────────────────
+   A glossy ganache-style drip over the top edge: a band that hugs the
+   rounded rim and runs down the side by a length that varies around the cake. */
+export function makeDripLumps({ R, H, seed = 9, avoid = [], margin = 0.08 }) {
+  const rand = rng(seed);
+  const lumps = [];
+  const n = 34;
+  for (let k = 0; k < n; k++) {
+    const phi = (k / n) * TAU + (rand() - 0.5) * 0.12;
+    const near = avoid.some((a) => Math.abs(Math.atan2(Math.sin(phi - a), Math.cos(phi - a))) < margin);
+    if (near) continue;
+    lumps.push({ phi, A: H * (0.08 + rand() * rand() * 0.42), w: 0.028 + rand() * 0.02 });
+  }
+  return lumps;
+}
+const dripLen = (phi, lumps) => {
+  let L = 0.03;
+  for (const l of lumps) {
+    const d = Math.atan2(Math.sin(phi - l.phi), Math.cos(phi - l.phi)) / l.w;
+    L = Math.max(L, 0.03 + l.A * Math.exp(-d * d));
+  }
+  return L;
+};
+
+export function dripGeometry({ R, H, cr, a0, a1, lumps, off = 0.013, topIn = 0.1 }) {
+  const n = Math.max(8, Math.ceil((a1 - a0) / 0.005));
+  const S = 6;
+  const Wn = 10;
+  const pos = [];
+  const nor = [];
+  const index = [];
+  let cnt = 0;
+  for (let i = 0; i <= n; i++) {
+    const phi = a0 + ((a1 - a0) * i) / n;
+    const sn = Math.sin(phi);
+    const cs = Math.cos(phi);
+    const L = dripLen(phi, lumps);
+    const prof = [];
+    prof.push([R - cr - topIn, H + off * 0.5, 0, 1]);
+    prof.push([R - cr, H + off, 0, 1]);
+    for (let k = 1; k <= S; k++) {
+      const t = (k / S) * (Math.PI / 2);
+      prof.push([R - cr + (cr + off) * Math.sin(t), H - cr + (cr + off) * Math.cos(t), Math.sin(t), Math.cos(t)]);
+    }
+    for (let j = 1; j <= Wn; j++) {
+      const y = H - cr - L * (j / Wn);
+      const end = j === Wn ? 0.55 : 1;
+      prof.push([R + off * end, y, 1, 0]);
+    }
+    prof.push([R + 0.002, H - cr - L - 0.006, 0.4, -0.9]);
+    cnt = prof.length;
+    for (const [r, y, nr, ny] of prof) {
+      pos.push(r * sn, y, r * cs);
+      nor.push(nr * sn, ny, nr * cs);
+    }
+  }
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < cnt - 1; j++) {
+      const a = i * cnt + j;
+      const b = (i + 1) * cnt + j;
+      index.push(a, b, b + 1, a, b + 1, a + 1);
+    }
+  }
+  fixWinding(index, pos, nor);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(index);
+  g.computeVertexNormals();
+  return g;
+}
+export function dripTips({ R, H, cr, lumps, off = 0.013 }) {
+  return lumps.map((l) => {
+    const L = dripLen(l.phi, lumps);
+    const r = Math.min(0.03, l.w * R * 0.55);
+    return { phi: l.phi, r, pos: polar(R + off * 0.4, H - cr - L + r * 0.5, l.phi) };
+  });
+}
+
+/* ───────────────────────── roses ───────────────────────── */
+function petalGeometry(w, h, cup, curl) {
+  const cols = 8;
+  const rows = 7;
+  const pos = [];
+  const index = [];
+  for (let j = 0; j <= rows; j++) {
+    const v = j / rows;
+    const width = w * Math.sin(Math.PI * (0.12 + 0.82 * Math.pow(v, 0.75)));
+    for (let i = 0; i <= cols; i++) {
+      const u = (i / cols) * 2 - 1;
+      const x = u * width;
+      const y = v * h;
+      const z = cup * u * u * width - curl * v * v * h + 0.04 * h * Math.sin(u * 3 + v * 5) * v;
+      pos.push(x, y, z);
+    }
+  }
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const a = j * (cols + 1) + i;
+      const b = a + cols + 1;
+      index.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(index);
+  g.computeVertexNormals();
+  return g;
+}
+/** an open garden rose about 1 unit across, sitting on y = 0 */
+export function roseGeometry(petals = 15, seed = 3) {
+  const rand = rng(seed);
+  const parts = [];
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  for (let i = 0; i < petals; i++) {
+    const k = i / (petals - 1);
+    const g = petalGeometry(0.16 + 0.24 * k, 0.32 + 0.16 * k, 0.55 - 0.25 * k, 0.08 + 0.4 * k * k);
+    const theta = i * 2.39996 + rand() * 0.2;
+    const d = 0.02 + 0.2 * k;
+    const tilt = 0.05 + 1.05 * Math.pow(k, 1.3);
+    q.setFromEuler(new THREE.Euler(-tilt, theta + Math.PI, 0, 'YXZ'));
+    m.compose(new THREE.Vector3(Math.sin(theta) * d, -0.06 * k, Math.cos(theta) * d), q, new THREE.Vector3(1, 1, 1));
+    g.applyMatrix4(m);
+    parts.push(g);
+  }
+  const bud = new THREE.SphereGeometry(0.07, 10, 8);
+  bud.scale(1, 1.4, 1);
+  bud.translate(0, 0.16, 0);
+  bud.deleteAttribute('uv');
+  parts.push(bud);
+  const merged = mergeGeometries(parts.map((p) => (p.index ? p : p)), false);
+  merged.computeVertexNormals();
+  return merged;
+}
+
+/* ───────────────────────── tubes with a varying radius (braids) ───────────────────────── */
+export function variableTube(curve, segs, radial, radiusFn, uRepeat = 1) {
+  const frames = curve.computeFrenetFrames(segs, false);
+  const pos = [];
+  const uv = [];
+  const index = [];
+  const P = new THREE.Vector3();
+  for (let i = 0; i <= segs; i++) {
+    const u = i / segs;
+    curve.getPointAt(u, P);
+    const N = frames.normals[i];
+    const B = frames.binormals[i];
+    for (let j = 0; j <= radial; j++) {
+      const a = (j / radial) * TAU;
+      const r = radiusFn(u, a);
+      const cx = -Math.cos(a);
+      const sx = Math.sin(a);
+      pos.push(P.x + r * (cx * N.x + sx * B.x), P.y + r * (cx * N.y + sx * B.y), P.z + r * (cx * N.z + sx * B.z));
+      uv.push(u * uRepeat, j / radial);
+    }
+  }
+  for (let i = 0; i < segs; i++) {
+    for (let j = 0; j < radial; j++) {
+      const a = i * (radial + 1) + j;
+      const b = a + radial + 1;
+      index.push(a, b, a + 1, b, b + 1, a + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(index);
+  g.computeVertexNormals();
+  return g;
+}
+
+/* ───────────────────────── velvet curtain ───────────────────────── */
+export function curtainGeometry(width, height, folds = 9, depth = 0.28, tieAt = 0.32, seed = 1) {
+  const g = new THREE.PlaneGeometry(width, height, 140, 30);
+  const p = g.attributes.position;
+  const rand = rng(seed);
+  const ph = rand() * 6;
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i);
+    const y = p.getY(i);
+    const yn = (y + height / 2) / height; // 0 floor … 1 top
+    const gather = 1 - 0.5 * Math.exp(-(((yn - tieAt) / 0.14) ** 2));
+    const xn = x / width;
+    const nx = (xn + 0.5) * gather - 0.5 * gather + (1 - gather) * 0.32 * Math.sign(-0.5);
+    const z = depth * Math.sin(xn * folds * TAU + ph) * (0.55 + 0.45 * gather) + depth * 0.3 * Math.sin(xn * folds * 2.3 * TAU + ph * 2);
+    p.setXYZ(i, nx * width, y, z);
   }
   g.computeVertexNormals();
   return g;

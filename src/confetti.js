@@ -1,6 +1,6 @@
 import { TAU, rng } from './util.js';
 
-const COLORS = ['#ff7aa8', '#ffd166', '#ffffff', '#9d8cff', '#6ccfc0', '#ff9ec2', '#f6c453', '#ff6f91'];
+const COLORS = ['#ecc987', '#f2b8c6', '#fff6ea', '#d9a85a', '#e78fa6', '#f7dcc0', '#c97a8e', '#ffe7b0'];
 
 /** 2-D confetti, hearts and stars drawn on a canvas above the 3-D scene */
 export class Confetti {

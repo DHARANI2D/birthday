@@ -52,7 +52,7 @@ function wrapped(S, fn, x = S / 2, y = S / 2, reach = 0) {
   for (const ox of xs) for (const oy of ys) fn(ox, oy);
 }
 
-/* ─── pink buttercream, with palette-knife streaks ─────────────── */
+/* ─── ivory buttercream, with palette-knife streaks ─────────────── */
 export function frostingTextures(aniso) {
   const S = 512;
   const R = rng(11);
@@ -60,13 +60,13 @@ export function frostingTextures(aniso) {
   const cx = col.getContext('2d');
   const bump = canvas(S, S);
   const bx = bump.getContext('2d');
-  cx.fillStyle = '#f3a3b8';
+  cx.fillStyle = '#f8eee3';
   cx.fillRect(0, 0, S, S);
   bx.fillStyle = '#808080';
   bx.fillRect(0, 0, S, S);
   cx.lineCap = bx.lineCap = 'round';
 
-  for (let i = 0; i < 1100; i++) {
+  for (let i = 0; i < 700; i++) {
     const x = R() * S;
     const y = R() * S;
     const len = 50 + R() * 170;
@@ -77,7 +77,7 @@ export function frostingTextures(aniso) {
     const dx = Math.cos(ang) * len;
     const dy = Math.sin(ang) * len;
     wrapped(S, (ox, oy) => {
-      cx.strokeStyle = light ? `rgba(255,222,232,${a})` : `rgba(222,112,146,${a})`;
+      cx.strokeStyle = light ? `rgba(255,252,246,${a * 1.2})` : `rgba(214,184,160,${a * 0.9})`;
       cx.lineWidth = w;
       cx.beginPath();
       cx.moveTo(x + ox, y + oy);
@@ -242,7 +242,7 @@ export function sectionTextures(aniso) {
       b.fillRect(0, y0, W, y1 - y0);
     } else {
       // frosting band (top / bottom)
-      c.fillStyle = '#f3a3b8';
+      c.fillStyle = '#f8ede2';
       c.fillRect(0, y0, W, y1 - y0);
       b.fillStyle = '#909090';
       b.fillRect(0, y0, W, y1 - y0);
@@ -260,12 +260,14 @@ export function sectionTextures(aniso) {
   c.lineTo(W, H);
   c.lineTo(W, 0);
   c.closePath();
-  const cg = c.createLinearGradient(W - coat, 0, W, 0);
-  cg.addColorStop(0, '#f0a0b5');
-  cg.addColorStop(1, '#f6b4c6');
+  // ivory at the top, blushing toward the base (matches the ombré outside)
+  const cg = c.createLinearGradient(0, 0, 0, H);
+  cg.addColorStop(0, '#f8eee3');
+  cg.addColorStop(0.45, '#f6e2d8');
+  cg.addColorStop(1, '#eeb0bd');
   c.fillStyle = cg;
   c.fill();
-  c.strokeStyle = 'rgba(176,86,110,0.35)';
+  c.strokeStyle = 'rgba(190,150,120,0.35)';
   c.lineWidth = 2;
   c.stroke();
   c.restore();
@@ -337,57 +339,110 @@ export function strawberryTextures(aniso) {
   };
 }
 
-/* ─── striped spiral candles ───────────────────────────────────── */
-const candleCache = new Map();
-export function candleTexture(color, aniso) {
-  if (candleCache.has(color)) return candleCache.get(color);
+/* ─── slim ivory candles with a fine gold spiral ───────────────── */
+let candleTex = null;
+export function candleTexture(_color, aniso) {
+  if (candleTex) return candleTex;
   const W = 128;
   const H = 256;
   const c = canvas(W, H);
   const x = c.getContext('2d');
-  x.fillStyle = '#fff7ee';
+  const g = x.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, '#f3e6d4');
+  g.addColorStop(0.5, '#fffaf2');
+  g.addColorStop(1, '#f3e6d4');
+  x.fillStyle = g;
   x.fillRect(0, 0, W, H);
-  x.fillStyle = color;
-  const stripe = 34;
+  x.fillStyle = '#d9ad55';
+  const stripe = 44;
   for (let k = -4; k < 12; k++) {
     x.beginPath();
     x.moveTo(0, k * stripe);
     x.lineTo(W, k * stripe - 90);
-    x.lineTo(W, k * stripe - 90 + stripe * 0.5);
-    x.lineTo(0, k * stripe + stripe * 0.5);
+    x.lineTo(W, k * stripe - 90 + 6);
+    x.lineTo(0, k * stripe + 6);
     x.closePath();
     x.fill();
   }
-  const t = toTexture(c, { wrap: true, aniso });
-  candleCache.set(color, t);
-  return t;
+  candleTex = toTexture(c, { wrap: true, aniso });
+  return candleTex;
 }
 
-/* ─── wine-coloured satin tablecloth ───────────────────────────── */
+/* ─── ivory jacquard tablecloth (tone-on-tone damask) ───────────── */
 export function clothTextures(aniso) {
-  const S = 256;
+  const S = 512;
   const col = canvas(S, S);
   const c = col.getContext('2d');
   const bump = canvas(S, S);
   const b = bump.getContext('2d');
-  c.fillStyle = '#5b1f3d';
+  c.fillStyle = '#f4ead9';
   c.fillRect(0, 0, S, S);
   b.fillStyle = '#808080';
   b.fillRect(0, 0, S, S);
-  for (let i = 0; i < S; i += 2) {
-    const a = (i / 2) % 2 ? 0.1 : 0.0;
-    c.fillStyle = `rgba(255,190,220,${a})`;
-    c.fillRect(0, i, S, 1);
-    c.fillRect(i, 0, 1, S);
-    b.fillStyle = `rgba(255,255,255,${a * 2.5})`;
-    b.fillRect(0, i, S, 1);
-    b.fillRect(i, 0, 1, S);
+  for (const [px, py] of [[S / 2, S / 2], [0, 0], [S, 0], [0, S], [S, S]]) {
+    damaskMotif(c, px, py, 1.55, 'rgba(214,190,150,0.28)');
+    damaskMotif(b, px, py, 1.55, 'rgba(255,255,255,0.35)');
   }
-  grain(c, S, S, 9, 21);
+  for (const [px, py] of [[S / 2, 0], [S / 2, S], [0, S / 2], [S, S / 2]]) {
+    damaskMotif(c, px, py, 0.7, 'rgba(214,190,150,0.2)');
+  }
+  for (let i = 0; i < S; i += 2) {
+    c.fillStyle = `rgba(255,255,255,${(i / 2) % 2 ? 0.05 : 0})`;
+    c.fillRect(0, i, S, 1);
+  }
+  grain(c, S, S, 6, 21);
   return {
-    map: toTexture(col, { wrap: true, repeat: [26, 26], aniso }),
-    bump: toTexture(bump, { srgb: false, wrap: true, repeat: [26, 26], aniso }),
+    map: toTexture(col, { wrap: true, repeat: [7, 7], aniso }),
+    bump: toTexture(bump, { srgb: false, wrap: true, repeat: [7, 7], aniso }),
   };
+}
+
+/** a symmetrical damask ornament, drawn around (x, y) */
+export function damaskMotif(c, x, y, s, color) {
+  c.save();
+  c.translate(x, y);
+  c.scale(s, s);
+  c.fillStyle = color;
+  c.strokeStyle = color;
+  c.lineWidth = 3;
+  for (const m of [1, -1]) {
+    c.save();
+    c.scale(m, 1);
+    // central flame
+    c.beginPath();
+    c.moveTo(0, -78);
+    c.bezierCurveTo(10, -58, 26, -40, 14, -18);
+    c.bezierCurveTo(30, -8, 30, 18, 10, 30);
+    c.bezierCurveTo(22, 46, 14, 64, 0, 80);
+    c.lineTo(0, -78);
+    c.fill();
+    // scrolls
+    c.beginPath();
+    c.moveTo(14, -18);
+    c.bezierCurveTo(44, -40, 66, -20, 56, 2);
+    c.bezierCurveTo(50, 16, 34, 12, 38, 0);
+    c.stroke();
+    c.beginPath();
+    c.moveTo(10, 30);
+    c.bezierCurveTo(44, 34, 62, 58, 46, 74);
+    c.bezierCurveTo(36, 82, 26, 70, 34, 62);
+    c.stroke();
+    // leaves
+    c.beginPath();
+    c.ellipse(46, -46, 7, 18, -0.7, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.ellipse(30, 52, 5, 13, 0.6, 0, Math.PI * 2);
+    c.fill();
+    c.beginPath();
+    c.arc(60, 28, 4, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+  c.beginPath();
+  c.arc(0, -90, 6, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
 }
 
 /* ─── golden “Happy Birthday <name>” topper ────────────────────── */
@@ -537,14 +592,195 @@ export function smearTexture() {
   const R = rng(8);
   const c = canvas(S, S);
   const x = c.getContext('2d');
-  x.fillStyle = '#f7dfd6';
+  x.fillStyle = '#f7ebe0';
   x.fillRect(0, 0, S, S);
   for (let i = 0; i < 260; i++) {
-    x.fillStyle = R() > 0.5 ? 'rgba(244,163,184,0.18)' : 'rgba(255,248,235,0.25)';
+    x.fillStyle = R() > 0.5 ? 'rgba(238,176,189,0.16)' : 'rgba(255,250,240,0.3)';
     x.beginPath();
     x.ellipse(R() * S, R() * S, 4 + R() * 22, 3 + R() * 10, R() * 3, 0, TAU);
     x.fill();
   }
   grain(x, S, S, 10, 2);
   return toTexture(c, { wrap: true });
+}
+
+/* ─── wine damask wallpaper with a soft pool of light baked in ─── */
+export function wallTextures(aniso) {
+  const S = 512;
+  const col = canvas(S, S);
+  const c = col.getContext('2d');
+  c.fillStyle = '#4a1722';
+  c.fillRect(0, 0, S, S);
+  for (const [px, py] of [[S / 2, S / 2], [0, 0], [S, 0], [0, S], [S, S]]) damaskMotif(c, px, py, 1.5, 'rgba(120,40,52,0.55)');
+  for (const [px, py] of [[S / 2, S / 2], [0, 0], [S, 0], [0, S], [S, S]]) damaskMotif(c, px, py, 1.5, 'rgba(214,170,90,0.10)');
+  for (const [px, py] of [[S / 2, 0], [S / 2, S], [0, S / 2], [S, S / 2]]) damaskMotif(c, px, py, 0.65, 'rgba(214,170,90,0.12)');
+  grain(c, S, S, 8, 31);
+  return { map: toTexture(col, { wrap: true, repeat: [9, 5], aniso }) };
+}
+
+/* ─── warm wooden floor ─── */
+export function woodTextures(aniso) {
+  const W = 512;
+  const H = 512;
+  const R = rng(17);
+  const col = canvas(W, H);
+  const c = col.getContext('2d');
+  const bump = canvas(W, H);
+  const b = bump.getContext('2d');
+  b.fillStyle = '#808080';
+  b.fillRect(0, 0, W, H);
+  const plank = 64;
+  for (let y = 0; y < H; y += plank) {
+    const tint = 0.85 + R() * 0.3;
+    const base = [Math.floor(112 * tint), Math.floor(64 * tint), Math.floor(38 * tint)];
+    c.fillStyle = `rgb(${base})`;
+    c.fillRect(0, y, W, plank);
+    for (let i = 0; i < 40; i++) {
+      const yy = y + R() * plank;
+      c.strokeStyle = `rgba(${R() > 0.5 ? '60,30,14' : '170,110,70'},${0.08 + R() * 0.12})`;
+      c.lineWidth = 0.5 + R() * 1.5;
+      c.beginPath();
+      c.moveTo(0, yy);
+      for (let x = 0; x <= W; x += 16) c.lineTo(x, yy + Math.sin(x * 0.02 + i) * 2 + Math.sin(x * 0.07 + yy) * 0.8);
+      c.stroke();
+    }
+    const joint = Math.floor(R() * W);
+    c.fillStyle = 'rgba(30,14,6,0.8)';
+    c.fillRect(0, y, W, 2);
+    c.fillRect(joint, y, 2, plank);
+    b.fillStyle = '#202020';
+    b.fillRect(0, y, W, 2);
+    b.fillRect(joint, y, 2, plank);
+  }
+  grain(c, W, H, 10, 3);
+  return {
+    map: toTexture(col, { wrap: true, repeat: [10, 10], aniso }),
+    bump: toTexture(bump, { srgb: false, wrap: true, repeat: [10, 10], aniso }),
+  };
+}
+
+/* ─── a single bunting pennant with a letter ─── */
+const flagCache = new Map();
+export function flagTexture(letter, bg, fg) {
+  const key = letter + bg + fg;
+  if (flagCache.has(key)) return flagCache.get(key);
+  const W = 128;
+  const H = 168;
+  const c = canvas(W, H);
+  const x = c.getContext('2d');
+  x.beginPath();
+  x.moveTo(4, 4);
+  x.lineTo(W - 4, 4);
+  x.lineTo(W - 4, H * 0.62);
+  x.lineTo(W / 2, H - 4);
+  x.lineTo(4, H * 0.62);
+  x.closePath();
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, bg);
+  g.addColorStop(1, shade(bg, -18));
+  x.fillStyle = g;
+  x.fill();
+  x.lineWidth = 4;
+  x.strokeStyle = '#d9ad55';
+  x.stroke();
+  x.fillStyle = fg;
+  x.textAlign = 'center';
+  x.textBaseline = 'middle';
+  x.font = '600 76px "Cormorant Garamond", Georgia, serif';
+  x.fillText(letter, W / 2, H * 0.4);
+  const t = toTexture(c);
+  flagCache.set(key, t);
+  return t;
+}
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.max(0, Math.min(255, (n >> 16) + amt));
+  const g = Math.max(0, Math.min(255, ((n >> 8) & 255) + amt));
+  const b = Math.max(0, Math.min(255, (n & 255) + amt));
+  return `rgb(${r},${g},${b})`;
+}
+
+/* ─── iris for a sphere cap (v=0 is the pupil, v=1 the rim) ─── */
+export function irisTexture(color = '#5a3520') {
+  const W = 128;
+  const H = 128;
+  const R = rng(4);
+  const c = canvas(W, H);
+  const x = c.getContext('2d');
+  // canvas bottom = v 0 = pupil centre
+  const g = x.createLinearGradient(0, H, 0, 0);
+  g.addColorStop(0, '#050302');
+  g.addColorStop(0.3, '#050302');
+  g.addColorStop(0.36, shade(color, 40));
+  g.addColorStop(0.7, color);
+  g.addColorStop(0.9, shade(color, -40));
+  g.addColorStop(1, '#1a0d08');
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, H);
+  for (let i = 0; i < 220; i++) {
+    const px = R() * W;
+    x.strokeStyle = R() > 0.5 ? 'rgba(220,170,110,0.25)' : 'rgba(30,14,6,0.3)';
+    x.lineWidth = 0.6 + R();
+    x.beginPath();
+    x.moveTo(px, H * (0.12 + R() * 0.1));
+    x.lineTo(px + (R() - 0.5) * 4, H * (0.55 + R() * 0.1));
+    x.stroke();
+  }
+  return toTexture(c);
+}
+
+/* ─── hair strands (used as colour + bump) ─── */
+export function hairTextures(aniso) {
+  const W = 256;
+  const H = 256;
+  const R = rng(12);
+  const col = canvas(W, H);
+  const c = col.getContext('2d');
+  c.fillStyle = '#808080';
+  c.fillRect(0, 0, W, H);
+  for (let i = 0; i < 900; i++) {
+    const x0 = R() * W;
+    c.strokeStyle = R() > 0.5 ? `rgba(255,255,255,${0.1 + R() * 0.2})` : `rgba(0,0,0,${0.1 + R() * 0.25})`;
+    c.lineWidth = 0.5 + R() * 1.2;
+    c.beginPath();
+    c.moveTo(x0, 0);
+    c.bezierCurveTo(x0 + (R() - 0.5) * 10, H * 0.33, x0 + (R() - 0.5) * 10, H * 0.66, x0 + (R() - 0.5) * 6, H);
+    c.stroke();
+  }
+  return { bump: toTexture(col, { srgb: false, wrap: true, aniso }) };
+}
+
+/* ─── woven braid: repeating chevrons along u ─── */
+export function braidTextures(aniso) {
+  const W = 128;
+  const H = 128;
+  const col = canvas(W, H);
+  const c = col.getContext('2d');
+  c.fillStyle = '#808080';
+  c.fillRect(0, 0, W, H);
+  // one braid "knot" per texture repeat: two diagonal lobes meeting in the middle
+  for (const [y0, dir] of [[0, 1], [H / 2, -1]]) {
+    const g = c.createLinearGradient(0, y0, 0, y0 + H / 2);
+    g.addColorStop(0, 'rgba(0,0,0,0.65)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.45)');
+    g.addColorStop(1, 'rgba(0,0,0,0.65)');
+    c.fillStyle = g;
+    c.beginPath();
+    c.moveTo(0, y0);
+    c.quadraticCurveTo(W * 0.5, y0 + (dir > 0 ? H * 0.12 : H * 0.38), W, y0);
+    c.lineTo(W, y0 + H / 2);
+    c.quadraticCurveTo(W * 0.5, y0 + (dir > 0 ? H * 0.62 : H * 0.88), 0, y0 + H / 2);
+    c.closePath();
+    c.fill();
+  }
+  for (let i = 0; i < 300; i++) {
+    c.strokeStyle = `rgba(${Math.random() > 0.5 ? '255,255,255' : '0,0,0'},0.15)`;
+    c.beginPath();
+    const x0 = Math.random() * W;
+    const y0 = Math.random() * H;
+    c.moveTo(x0, y0);
+    c.lineTo(x0 + 18, y0 + 10);
+    c.stroke();
+  }
+  return { bump: toTexture(col, { srgb: false, wrap: true, aniso }) };
 }

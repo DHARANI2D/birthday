@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import { createWorld, stepWorld } from './world.js';
 import { createUI } from './ui.js';
 import { Sound } from './audio.js';
@@ -51,6 +52,7 @@ function frame(dt) {
 }
 
 if (testMode) window.__bday = {
+  V3: (x, y, z) => new Vector3(x, y, z),
   world, story, sound, ui, confetti, CONFIG,
   step: (dt) => { stepWorld(world, dt); confetti.update(dt); },
   render: () => { world.engine.render(); confetti.draw(); },

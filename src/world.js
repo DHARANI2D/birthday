@@ -25,10 +25,15 @@ export function createWorld(canvas) {
     star: TX.starTexture(),
     smoke: timed('smoke', () => TX.smokeTexture()),
     smear: timed('smear', () => TX.smearTexture()),
+    iris: TX.irisTexture('#5a3720'),
+    hair: TX.hairTextures(aniso),
+    braid: TX.braidTextures(aniso),
+    wall: TX.wallTextures(aniso),
+    wood: TX.woodTextures(aniso),
   };
   const stage = createStage(engine, T);
   const cake = createCake({ scene: engine.scene, T, engine, stage });
-  const family = createFamily(engine.scene);
+  const family = createFamily(engine.scene, T);
   const tools = createTools(engine);
   engine.scene.add(tools.knife, tools.server);
   const smoke = new Smoke(engine.scene, T.smoke);
