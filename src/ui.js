@@ -3,6 +3,36 @@ import { CONFIG } from './config.js';
 const $ = (id) => document.getElementById(id);
 const show = (el, on = true) => el.classList.toggle('hidden', !on);
 
+/** only send from the real website (not when the file is opened directly or in a preview) */
+export function canSendWish() {
+  return Boolean(CONFIG.wishInbox) && /^https?:$/.test(location.protocol) && !/claude/i.test(location.hostname);
+}
+
+/** post her wish to the form inbox; retries a couple of times if the network blips */
+export async function sendWish(text, attempt = 0) {
+  try {
+    const res = await fetch(CONFIG.wishInbox, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        _subject: `${CONFIG.name}'s birthday wish 💌`,
+        wish: text,
+        from: CONFIG.name,
+        sentAt: new Date().toString(),
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return true;
+  } catch (e) {
+    if (attempt < 2) {
+      await new Promise((r) => setTimeout(r, 4000 * (attempt + 1)));
+      return sendWish(text, attempt + 1);
+    }
+    console.warn('Could not send the wish:', e);
+    return false;
+  }
+}
+
 /** Thin wrapper around the page's DOM overlays. Every method returns a Promise or nothing. */
 export function createUI() {
   const el = {
@@ -10,7 +40,7 @@ export function createUI() {
     prompt: $('prompt'), promptText: $('promptText'), promptBtns: $('promptBtns'),
     wish: $('wish'), wishInput: $('wishInput'), wishDone: $('wishDone'), wishFloat: $('wishFloat'),
     cutHint: $('cutHint'), big: $('bigGreeting'), endBar: $('endBar'), readNote: $('readNote'), replay: $('replay'),
-    letter: $('letter'), letterBack: $('letterBack'), mute: $('mute'),
+    letter: $('letter'), letterBack: $('letterBack'), mute: $('mute'), wishNote: $('wishNote'),
   };
   // personalise the page from config
   document.title = `Happy Birthday ${CONFIG.name} 🎂`;
@@ -60,14 +90,20 @@ export function createUI() {
     hidePrompt() {
       show(el.prompt, false);
     },
-    /** the make-a-wish popup */
+    /** the make-a-wish popup; when an inbox is set, the wish is sent to it */
     wish() {
+      const sending = canSendWish();
+      el.wishNote.textContent = sending
+        ? `Think of the one thing your heart wants most this year, and whisper it here. Your wish will be sent to ${CONFIG.signedBy} 💌`
+        : 'Think of the one thing your heart wants most this year. You can whisper it here; it never leaves this page.';
       el.wishInput.value = '';
       show(el.wish, true);
       setTimeout(() => el.wishInput.focus({ preventScroll: true }), 700);
       return once(el.wishDone, 'click').then(() => {
         show(el.wish, false);
-        return el.wishInput.value.trim();
+        const text = el.wishInput.value.trim();
+        if (sending && text) sendWish(text);
+        return text;
       });
     },
     floatWish(text) {
