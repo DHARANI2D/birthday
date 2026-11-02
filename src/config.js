@@ -10,7 +10,7 @@ export const CONFIG = {
   // Where her wish is sent. Paste your Formspree form address here, e.g.
   // 'https://formspree.io/f/abcdwxyz'. Leave it empty and the wish stays private
   // on her screen. (Sending only happens on the real website, e.g. GitHub Pages.)
-  wishInbox: '',
+  wishInbox: 'https://formspree.io/f/xnppoprn',
 
   // lyrics shown while the music box plays "Happy Birthday"
   lyrics: [
