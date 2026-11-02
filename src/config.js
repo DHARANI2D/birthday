@@ -18,11 +18,11 @@ export const CONFIG = {
   letter: {
     title: 'To my girl,',
     paragraphs: [
-      'Some people are friends by chance. Some are sisters by choice. You are my choice, girl — every single time.',
-      'Thank you for every laugh that left my stomach hurting, every silly fight we pretended never happened, and every time you had my back without being asked.',
-      'The world got a little brighter the day you were born, and my life got a lot better the day you became my sister in every way that matters.',
-      'Make a big wish, keep that beautiful smile, and know that I will be right here helping you chase every single one of them.',
+      'Not every sister is given to us at birth. Some arrive later, quietly, and fill a place in our hearts we never knew was waiting for them. That is what you did, Kaviya.',
+      'You have laughed with me until we could barely breathe, stood beside me on the hard days without ever being asked, and turned the most ordinary moments into memories I will keep forever.',
+      'Watching you grow into the kind, brave and beautiful person you are has been one of the quiet joys of my life. I am so proud of you, and so grateful that you are my sister.',
+      'Today, may your heart feel as loved as you make everyone around you feel. Make your wish, hold on to your dreams, and know that I will always be right here, cheering for you the loudest.',
     ],
-    closing: 'Happy Birthday, Kaviya. 🎂',
+    closing: 'Happy Birthday, my dear sister. With all my love. 🎂',
   },
 };
